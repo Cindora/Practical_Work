@@ -1,9 +1,20 @@
 namespace Fibers
 {
+    static class Constants
+    {
+        public const int MaxPriority = 10;
+    }
+    public enum Prioritize
+    {
+        WithPriority,
+        WithoutPriority
+    }
+
     public static class ProcessManager
     {
         private static List<Fiber> fiberList = new List<Fiber>();
 
+        private static Prioritize DispatchingAlgorytm;
         public static void Switch(bool fiberFinished)
         {
             if (fiberFinished)
@@ -12,20 +23,42 @@ namespace Fibers
             }
             if (!fiberList.Any())
             {
+#if DEBUG
+                Console.WriteLine(string.Format("------- Prime fiber -------"));
+#endif
+
                 Fiber.Switch(Fiber.PrimaryId);
             }
-
+#if DEBUG
+            Console.Write(string.Format("Fiber [{0}]. ", fiberList[0].Id));
+            if (DispatchingAlgorytm == Prioritize.WithPriority)
+                Console.Write(string.Format("Priority: {1}. ", fiberList[0].Id, fiberList[0].Priority));
+            Console.Write("Status: ");
+#endif
+            Thread.Sleep(100);
             Fiber.Switch(fiberList[0].Id);
         }
 
-        public static void Execute(List<Process> processList)
+        public static void Execute(List<Process> processList, Prioritize Prioritize)
         {
-            foreach (var process in processList)
-            {
-                fiberList.Add(new Fiber(process.Run));
-            }
+            DispatchingAlgorytm = Prioritize;
 
-            fiberList = fiberList.ToList();
+            switch (DispatchingAlgorytm)
+            {
+                case Prioritize.WithPriority:
+                    foreach (var process in processList)
+                        fiberList.Add(new Fiber(process.Run, process.Priority));
+
+                    fiberList = fiberList.OrderByDescending(x => x.Priority).ToList();
+                    break;
+
+                case Prioritize.WithoutPriority:
+                    foreach (var process in processList)
+                        fiberList.Add(new Fiber(process.Run));
+
+                    fiberList = fiberList.ToList();
+                    break;
+            }
 
             Switch(false);
 
@@ -43,10 +76,12 @@ namespace Fibers
         private const int LongPauseBoundary = 2000;
         private const int ShortPauseBoundary = 100;
         private const int WorkBoundary = 1000;
-        private const int IntervalsAmountBoundary = 10;
+        private const int IntervalsAmountBoundary = 4;
 
         private readonly List<int> _workIntervals = new List<int>();
         private readonly List<int> _pauseIntervals = new List<int>();
+
+        public int Priority { get; private set; }
 
         public Process()
         {
@@ -60,6 +95,8 @@ namespace Fibers
                         ? LongPauseBoundary
                         : ShortPauseBoundary));
             }
+
+            Priority = Rng.Next(Constants.MaxPriority);
         }
 
         public void Run()
@@ -77,7 +114,7 @@ namespace Fibers
                 } while ((DateTime.Now - pauseBeginTime).TotalMilliseconds < _pauseIntervals[i]); // I/O emulation
             }
 #if DEBUG
-            Console.WriteLine(TotalDuration);
+            Console.WriteLine($"{TotalDuration} ms total.");
 #endif
             ProcessManager.Switch(true);
         }

@@ -6,12 +6,13 @@
         {
             var processList = new List<Process>();
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 5; i++)
             {
                 processList.Add(new Process());
             }
 
-            ProcessManager.Execute(processList);
+            ProcessManager.Execute(processList, Prioritize.WithPriority);
+            ProcessManager.Execute(processList, Prioritize.WithoutPriority);
         }
     }
 }

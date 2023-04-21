@@ -13,6 +13,11 @@ namespace Fibers
         public uint Id { get; private set; }
 
         /// <summary>
+        /// Gets the fiber priority.
+        /// </summary>
+        public int Priority { get; }
+
+        /// <summary>
         /// Gets the id of the primary fiber.
         /// </summary>
         /// <remarks>If the Id is 0 then this means that there is no primary Id on the fiber.</remarks>
@@ -30,6 +35,19 @@ namespace Fibers
         public Fiber(Action action)
         {
             InnerCreate(action);
+            Priority = Constants.MaxPriority;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Fiber"/> class with priority.
+        /// </summary>
+        /// <param name='action'>Action.</param>
+        /// <param name='priority'>Priority.</param>
+
+        public Fiber(Action action, int priority)
+        {
+            InnerCreate(action);
+            Priority = priority;
         }
 
         /// <summary>
@@ -57,13 +75,6 @@ namespace Fibers
         public static void Switch(uint fiberId)
         {
             // for debug only and to show that indeed it works! Remove this line!!!
-#if DEBUG
-            Console.Write(string.Format("Fiber [{0}]: ", fiberId));
-            if (fiberId == PrimaryId)
-            {
-                Console.WriteLine("Prime fiber.");
-            }
-#endif
             UnmanagedFiberAPI.SwitchToFiber(fiberId);
         }
 
